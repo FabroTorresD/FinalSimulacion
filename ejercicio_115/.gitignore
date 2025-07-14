@@ -1,0 +1,42 @@
+# ─── Entorno virtual ───────────────────────────────────────────
+.venv/
+env/
+venv/
+
+# ─── Cache de Python ───────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.pyd
+
+# ─── Configuración de IDEs / editores ─────────────────────────
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# ─── Archivos del sistema operativo ───────────────────────────
+.DS_Store
+Thumbs.db
+
+# ─── Streamlit ────────────────────────────────────────────────
+.streamlit/secrets.toml
+.streamlit/config.toml
+
+# ─── Jupyter / notebooks (si hubiera) ─────────────────────────
+.ipynb_checkpoints/
+
+# ─── Tests ─────────────────────────────────────────────────────
+.pytest_cache/
+
+# ─── Datos grandes o temporales ───────────────────────────────
+*.csv
+*.xlsx
+*.parquet
+*.pdf
+data/
+outputs/
