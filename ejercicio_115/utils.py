@@ -36,6 +36,7 @@ def mapear_estado_zapato(estado_interno):
     mapeo = {
         "En cola": "ER",  # esperandoReparacion
         "Reparando": "SR",  # siendoReparado
+        "Interrumpido": "RI",  # reparacionInterrumpida
         "Listo para retiro": "LR",  # listoParaRetiro
         "Retirado": ""  # Sin texto, solo color
     }

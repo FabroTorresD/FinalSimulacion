@@ -47,6 +47,7 @@ def mapear_estado_zapato(estado_interno):
     mapeo = {
         "En cola": "ER",  # esperandoReparacion
         "Reparando": "SR",  # siendoReparado
+        "Interrumpido": "RI",  # reparacionInterrumpida
         "Listo para retiro": "LR",  # listoParaRetiro
         "Retirado": ""  # Sin texto, solo color
     }
@@ -275,6 +276,9 @@ def simular_dia(stock_inicial: int, mu: float, a1: float, b1: float,
             if estado_zapatero == "Reparando":
                 reparacion_restante = fin_reparacion - reloj
                 fin_reparacion = math.inf
+                # NUEVO: Cambiar estado del zapato que se está reparando a "Interrumpido"
+                if current_repair_id:
+                    zapatos_estado[current_repair_id] = "Interrumpido"
             
             rnd_atencion, tiempo_atencion = gen_uniforme(a1, b1)
             fin_atencion = reloj + tiempo_atencion
