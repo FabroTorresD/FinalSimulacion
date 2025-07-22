@@ -3,7 +3,7 @@ import pandas as pd
 import random
 import math
 from itertools import count
-from utils import generar_nueva_fila_multiindex, marcar_zapatos_retirados, limpiar_zapatos_retirados, generar_estilos_dataframe
+from utils import generar_nueva_fila_multiindex, marcar_zapatos_retirados, limpiar_zapatos_retirados
 
 
 # -----------------------------------------------------------
@@ -22,7 +22,8 @@ b1            = st.sidebar.number_input("Atención (min) - máximo", 0.1, 10.0, 
 a2            = st.sidebar.number_input("Reparación (min) - mínimo", 1.0, 50.0, 10.0)
 b2            = st.sidebar.number_input("Reparación (min) - máximo", 1.0, 50.0, 20.0)
 p_retiro      = st.sidebar.slider("Probabilidad de retiro", 0.0, 1.0, 0.5, 0.01)
-jornada       = st.sidebar.number_input("Duración de la jornada (min)", 1, 2000, 480)
+# Removemos jornada fija ya que el zapatero trabaja hasta completar todo
+# jornada       = st.sidebar.number_input("Duración de la jornada (min)", 1, 2000, 480)
 
 # -----------------------------------------------------------
 # 2) Generadores auxiliares
@@ -39,10 +40,23 @@ def gen_uniforme(a: float, b: float) -> tuple[float, float]:
     return rnd, valor
 
 # -----------------------------------------------------------
-# 3) Simulación de un día
+# 3) Función para mapear estados internos a estados mostrados
+# -----------------------------------------------------------
+def mapear_estado_zapato(estado_interno):
+    """Mapea estados internos a abreviaturas para mostrar"""
+    mapeo = {
+        "En cola": "ER",  # esperandoReparacion
+        "Reparando": "SR",  # siendoReparado
+        "Listo para retiro": "LR",  # listoParaRetiro
+        "Retirado": ""  # Sin texto, solo color
+    }
+    return mapeo.get(estado_interno, estado_interno)
+
+# -----------------------------------------------------------
+# 4) Simulación de un día
 # -----------------------------------------------------------
 def simular_dia(stock_inicial: int, mu: float, a1: float, b1: float,
-                a2: float, b2: float, p_retiro: float, jornada: int):
+                a2: float, b2: float, p_retiro: float):
     reloj           = 0.0
     nro_evento      = 0
     rnd_llegada, tiempo_entre = gen_exponencial(mu)
@@ -149,16 +163,31 @@ def simular_dia(stock_inicial: int, mu: float, a1: float, b1: float,
 
     def registrar(evento: str, rnd_pet=None, tipo_pet=None):
         nonlocal nro_evento, cant_max_cola, zapatos_recien_retirados
-        cant_max_cola = max(cant_max_cola, len(cola_pedidos))
-        
+
+        # ──────────────────────────────────────────────────────────────
+        # 1) CANTIDAD REAL DE CLIENTES EN COLA
+        #    • Si el zapatero está "Atendiendo", el primer elemento de
+        #      cola_pedidos corresponde al cliente que está en el mostrador
+        #      (no debe contarse como "en cola").
+        # ──────────────────────────────────────────────────────────────
+        en_cola = len(cola_pedidos)
+        if estado_zapatero == "Atendiendo" and en_cola:
+            en_cola -= 1                        # excluimos al atendido
+
+        # 2) Actualizar el máximo con esa cantidad depurada
+        cant_max_cola = max(cant_max_cola, en_cola)
+
+        # 3) Mantener el resto de la lógica tal cual
         actualizar_eventos_persistentes(evento)
-        
+
         # Marcar zapatos retirados antes de crear la fila
         if zapatos_recien_retirados:
-            zapatos_estado_marcado = marcar_zapatos_retirados(zapatos_estado, zapatos_recien_retirados)
+            zapatos_estado_marcado = marcar_zapatos_retirados(
+                zapatos_estado, zapatos_recien_retirados
+            )
         else:
             zapatos_estado_marcado = zapatos_estado.copy()
-        
+
         # Crear estado actual para generar fila con multi-índice
         estado_actual = {
             "nro_evento": nro_evento,
@@ -178,28 +207,35 @@ def simular_dia(stock_inicial: int, mu: float, a1: float, b1: float,
             "estado_zapatero": estado_zapatero,
             "cant_pares_reparados": cant_pares_reparados,
             "zapatos_para_retirar": zapatos_para_retirar,
-            # Columnas de estadísticas agregadas
-            "cola_pedidos": len(cola_pedidos),
+            # -------------- estadísticas de cola --------------
+            "cola_pedidos": en_cola,            # ← aquí usamos la nueva var
             "max_cola": cant_max_cola,
+            # ---------------------------------------------------
             "acum_tiempo_reparacion": acum_tiempo_rep,
             "objetos_temporales": zapatos_estado_marcado,
-            "horas_inicio_reparacion": zapatos_hora_inicio
+            "horas_inicio_reparacion": zapatos_hora_inicio,
         }
-        
-        # Generar fila con multi-índice usando utils.py
-        fila_multiindex = generar_nueva_fila_multiindex(estado_actual, con_objetos_temporales=True)
+
+        # Generar fila con multi-índice
+        fila_multiindex = generar_nueva_fila_multiindex(
+            estado_actual, con_objetos_temporales=True
+        )
         filas.append(fila_multiindex)
-        
+
         # Limpiar zapatos retirados después de registrar
         if zapatos_recien_retirados:
             for zapato_id in zapatos_recien_retirados:
-                if zapato_id in zapatos_estado:
-                    del zapatos_estado[zapato_id]
-                if zapato_id in zapatos_hora_inicio:
-                    del zapatos_hora_inicio[zapato_id]
+                zapatos_estado.pop(zapato_id, None)
+                zapatos_hora_inicio.pop(zapato_id, None)
             zapatos_recien_retirados.clear()
-        
+
         nro_evento += 1
+
+    def hay_trabajo_pendiente():
+        """Verifica si hay trabajo pendiente (reparaciones en curso o en cola)"""
+        return (len(cola_pedidos) > 0 or 
+                fin_reparacion != math.inf or 
+                estado_zapatero == "Reparando")
 
     registrar("Inicial")
     while True:
@@ -216,28 +252,47 @@ def simular_dia(stock_inicial: int, mu: float, a1: float, b1: float,
         if evento == "Llegada":
             rnd_peticion = random.random()
             tipo_peticion = "Retiro" if rnd_peticion < p_retiro else "Pedido"
-            if reloj < jornada:
+            
+            # CAMBIO PRINCIPAL: Después de las 16hs (480min), solo se aceptan retiros
+            if reloj < 480:  # Antes de las 16hs: pedidos y retiros
+                # Programar próxima llegada normalmente
                 rnd_llegada, tiempo_entre = gen_exponencial(mu)
                 prox_llegada = reloj + tiempo_entre
-            else:
-                prox_llegada = math.inf
+            else:  # Después de las 16hs: solo retiros
+                if tipo_peticion == "Pedido":
+                    # Si es un pedido después de las 16hs, el cliente se va
+                    # No se procesa el pedido, pero sí programamos próxima llegada
+                    rnd_llegada, tiempo_entre = gen_exponencial(mu)
+                    prox_llegada = reloj + tiempo_entre
+                    registrar("Llegada", rnd_peticion, "Pedido_rechazado")
+                    continue  # Saltamos el resto del procesamiento
+                else:
+                    # Es un retiro, se procesa normalmente y programamos próxima llegada
+                    rnd_llegada, tiempo_entre = gen_exponencial(mu)
+                    prox_llegada = reloj + tiempo_entre
+            
+            # Procesamiento normal de llegada (pedidos antes de 16hs o retiros siempre)
             if estado_zapatero == "Reparando":
                 reparacion_restante = fin_reparacion - reloj
                 fin_reparacion = math.inf
+            
             rnd_atencion, tiempo_atencion = gen_uniforme(a1, b1)
             fin_atencion = reloj + tiempo_atencion
             estado_zapatero = "Atendiendo"
+            
             if tipo_peticion == "Pedido":
                 nuevo_id = next(id_generator)
                 cola_pedidos.append(nuevo_id)
                 rnd_reparacion, tiempo_reparacion = gen_uniforme(a2, b2)
                 zapatos_estado[nuevo_id] = "En cola"
                 zapatos_hora_inicio[nuevo_id] = None  # Inicializar hora inicio
-            else:
+            else:  # tipo_peticion == "Retiro"
                 if ready_queue:
                     id_retiro = ready_queue.pop(0)
                     zapatos_recien_retirados.add(id_retiro)  # Marcar como retirado
                     zapatos_para_retirar -= 1
+                # Si no hay zapatos para retirar, el cliente se va (no hace nada más)
+            
             registrar("Llegada", rnd_peticion, tipo_peticion)
 
         elif evento == "Fin_atencion":
@@ -258,6 +313,9 @@ def simular_dia(stock_inicial: int, mu: float, a1: float, b1: float,
                 estado_zapatero = "Reparando"
             else:
                 estado_zapatero = "Libre"
+                # CAMBIO: Si no hay trabajo pendiente y son más de las 16hs, detener llegadas
+                if reloj >= 480 and not hay_trabajo_pendiente():
+                    prox_llegada = math.inf
             registrar("Fin_atencion")
 
         elif evento == "Fin_reparacion":
@@ -276,6 +334,10 @@ def simular_dia(stock_inicial: int, mu: float, a1: float, b1: float,
                 zapatos_estado[current_repair_id] = "Reparando"
                 zapatos_hora_inicio[current_repair_id] = reloj  # Registrar hora inicio
                 estado_zapatero = "Reparando"
+            else:
+                # CAMBIO: Si no hay trabajo pendiente y son más de las 16hs, detener llegadas
+                if reloj >= 480 and not hay_trabajo_pendiente():
+                    prox_llegada = math.inf
             registrar("Fin_reparacion")
 
     # Crear DataFrame con multi-índice
@@ -291,25 +353,24 @@ def simular_dia(stock_inicial: int, mu: float, a1: float, b1: float,
     return df, avg_rep, cant_max_cola
 
 # -----------------------------------------------------------
-# 4) Ejecución desde Streamlit
+# 5) Ejecución desde Streamlit
 # -----------------------------------------------------------
 if st.sidebar.button("Arrancar simulación"):
     df, avg_rep, max_cola = simular_dia(
-        stock_inicial, mu, a1, b1, a2, b2, p_retiro, jornada
+        stock_inicial, mu, a1, b1, a2, b2, p_retiro
     )
     st.subheader("Simulacion")
     
-    # Aplicar estilos para resaltar zapatos retirados
-    try:
-        styled_df = df.style.applymap(generar_estilos_dataframe())
-        st.dataframe(styled_df, use_container_width=True)
-    except:
-        # Si hay error con el styling, mostrar DataFrame sin estilos
-        st.dataframe(df, use_container_width=True)
+    # Mostrar DataFrame sin estilos
+    st.dataframe(df, use_container_width=True)
     
     st.subheader("Estadísticas")
     col1, col2 = st.columns(2)
    
-   
     col1.metric("Tiempo promedio reparación", f"{avg_rep:.2f}")
     col2.metric("Máx. clientes en cola", max_cola)
+    
+    # Mostrar hora de finalización
+    if not df.empty:
+        hora_final = df[("", "Reloj")].iloc[-1]
+        st.info(f"Simulación finalizada a las {hora_final:.2f} minutos ({hora_final/60:.2f} horas)")

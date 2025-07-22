@@ -1,6 +1,7 @@
 # utils.py
 import random
 import math
+import pandas as pd
 
 # ------------------------------------------------------------
 # 1) Generación de variables aleatorias
@@ -28,7 +29,20 @@ def generar_numeros_aleatorios(tipo: str, params):
         raise ValueError(f"Distribución no soportada: {tipo}")
 
 # ------------------------------------------------------------
-# 2) Conversión de un dict de estado a fila con Multi-Index
+# 2) Función para mapear estados internos a estados mostrados
+# ------------------------------------------------------------
+def mapear_estado_zapato(estado_interno):
+    """Mapea estados internos a abreviaturas para mostrar"""
+    mapeo = {
+        "En cola": "ER",  # esperandoReparacion
+        "Reparando": "SR",  # siendoReparado
+        "Listo para retiro": "LR",  # listoParaRetiro
+        "Retirado": ""  # Sin texto, solo color
+    }
+    return mapeo.get(estado_interno, estado_interno)
+
+# ------------------------------------------------------------
+# 3) Conversión de un dict de estado a fila con Multi-Index
 # ------------------------------------------------------------
 def generar_nueva_fila_multiindex(estado_actual, con_objetos_temporales=True):
     """
@@ -86,16 +100,19 @@ def generar_nueva_fila_multiindex(estado_actual, con_objetos_temporales=True):
         horas_inicio_reparacion = estado_actual.get("horas_inicio_reparacion", {})
         
         for zapato_id, estado_zapato in objetos_temporales.items():
+            # Mapear el estado interno a la abreviatura para mostrar
+            estado_mostrado = mapear_estado_zapato(estado_zapato)
+            
             # Solo mostrar Estado y Hora_inicio_reparacion para cada zapato
             obj_nombre = "Zapato"
-            nueva_fila[(obj_nombre, f"Estado_{zapato_id}")] = estado_zapato
+            nueva_fila[(obj_nombre, f"Estado_{zapato_id}")] = estado_mostrado
             hora_inicio = horas_inicio_reparacion.get(zapato_id)
             nueva_fila[(obj_nombre, f"Hora_inicio_reparacion_{zapato_id}")] = format_value(hora_inicio)
     
     return nueva_fila
 
 # ------------------------------------------------------------
-# 3) Función auxiliar para procesar objetos temporales desde dict
+# 4) Función auxiliar para procesar objetos temporales desde dict
 # ------------------------------------------------------------
 def procesar_objetos_temporales_desde_dict(zapatos_estado: dict):
     """
@@ -111,7 +128,7 @@ def procesar_objetos_temporales_desde_dict(zapatos_estado: dict):
     return zapatos_estado
 
 # ------------------------------------------------------------
-# 4) Función para marcar zapatos retirados (eliminados del sistema)
+# 5) Función para marcar zapatos retirados (eliminados del sistema)
 # ------------------------------------------------------------
 def marcar_zapatos_retirados(zapatos_estado: dict, retirados: set):
     """
@@ -128,10 +145,10 @@ def marcar_zapatos_retirados(zapatos_estado: dict, retirados: set):
     """
     estado_actualizado = zapatos_estado.copy()
     
-    # Marcar los recién retirados con estado especial (sin emoji)
+    # Marcar los recién retirados con estado especial
     for zapato_id in retirados:
         if zapato_id in estado_actualizado:
-            estado_actualizado[zapato_id] = "Retirado"  # Sin emoji
+            estado_actualizado[zapato_id] = "Retirado"
     
     return estado_actualizado
 
@@ -147,21 +164,3 @@ def limpiar_zapatos_retirados(zapatos_estado: dict):
     """
     return {id_zapato: estado for id_zapato, estado in zapatos_estado.items() 
             if estado != "Retirado"}
-
-# ------------------------------------------------------------
-# 5) Función para generar colores de fondo (para Streamlit styling)
-# ------------------------------------------------------------
-def generar_estilos_dataframe():
-    """
-    Genera estilos CSS para el DataFrame que resalte los zapatos retirados.
-    
-    Returns:
-        dict con estilos para aplicar al DataFrame
-    """
-    def colorear_retirados(val):
-        """Aplica color de fondo rojo claro a zapatos retirados"""
-        if isinstance(val, str) and val == "Retirado":
-            return 'background-color: #ffcccb'  # Rojo claro
-        return ''
-    
-    return colorear_retirados
