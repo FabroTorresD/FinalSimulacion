@@ -64,6 +64,7 @@ def simular_dia(stock_inicial: int, mu: float, a1: float, b1: float,
     zapatos_para_retirar = stock_inicial
     cant_pares_reparados = 0
     zapatos_estado: dict[int, str] = {i: 'Listo para retiro' for i in ready_queue}
+    zapatos_hora_inicio: dict[int, float] = {i: None for i in ready_queue}  # Hora inicio reparación
     current_repair_id: int | None = None
 
     # Variables para estadísticas
@@ -181,8 +182,8 @@ def simular_dia(stock_inicial: int, mu: float, a1: float, b1: float,
             "cola_pedidos": len(cola_pedidos),
             "max_cola": cant_max_cola,
             "acum_tiempo_reparacion": acum_tiempo_rep,
-            "tiempo_promedio_reparacion": acum_tiempo_rep / cant_pares_reparados if cant_pares_reparados > 0 else 0.0,
-            "objetos_temporales": zapatos_estado_marcado
+            "objetos_temporales": zapatos_estado_marcado,
+            "horas_inicio_reparacion": zapatos_hora_inicio
         }
         
         # Generar fila con multi-índice usando utils.py
@@ -194,6 +195,8 @@ def simular_dia(stock_inicial: int, mu: float, a1: float, b1: float,
             for zapato_id in zapatos_recien_retirados:
                 if zapato_id in zapatos_estado:
                     del zapatos_estado[zapato_id]
+                if zapato_id in zapatos_hora_inicio:
+                    del zapatos_hora_inicio[zapato_id]
             zapatos_recien_retirados.clear()
         
         nro_evento += 1
@@ -229,6 +232,7 @@ def simular_dia(stock_inicial: int, mu: float, a1: float, b1: float,
                 cola_pedidos.append(nuevo_id)
                 rnd_reparacion, tiempo_reparacion = gen_uniforme(a2, b2)
                 zapatos_estado[nuevo_id] = "En cola"
+                zapatos_hora_inicio[nuevo_id] = None  # Inicializar hora inicio
             else:
                 if ready_queue:
                     id_retiro = ready_queue.pop(0)
@@ -250,6 +254,7 @@ def simular_dia(stock_inicial: int, mu: float, a1: float, b1: float,
                 rnd_reparacion, tiempo_reparacion = gen_uniforme(a2, b2)
                 fin_reparacion = reloj + tiempo_reparacion
                 zapatos_estado[current_repair_id] = "Reparando"
+                zapatos_hora_inicio[current_repair_id] = reloj  # Registrar hora inicio
                 estado_zapatero = "Reparando"
             else:
                 estado_zapatero = "Libre"
@@ -269,6 +274,7 @@ def simular_dia(stock_inicial: int, mu: float, a1: float, b1: float,
                 rnd_reparacion, tiempo_reparacion = gen_uniforme(a2, b2)
                 fin_reparacion = reloj + tiempo_reparacion
                 zapatos_estado[current_repair_id] = "Reparando"
+                zapatos_hora_inicio[current_repair_id] = reloj  # Registrar hora inicio
                 estado_zapatero = "Reparando"
             registrar("Fin_reparacion")
 

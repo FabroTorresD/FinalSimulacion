@@ -74,20 +74,23 @@ def generar_nueva_fila_multiindex(estado_actual, con_objetos_temporales=True):
         ("", "Cant_pares_reparados"): format_value(estado_actual.get("cant_pares_reparados"), es_id=True),
         ("", "Zapatos_para_retirar"): format_value(estado_actual.get("zapatos_para_retirar"), es_id=True),
         
-        # Columnas de estadísticas agregadas
-        ("Estadísticas", "Cola_pedidos"): format_value(estado_actual.get("cola_pedidos"), es_id=True),
-        ("Estadísticas", "Max_cola"): format_value(estado_actual.get("max_cola"), es_id=True),
+        # Columnas de estadísticas - exactamente las 4 solicitadas
+        ("Estadísticas", "Cantidad_de_clientes_en_cola"): format_value(estado_actual.get("cola_pedidos"), es_id=True),
+        ("Estadísticas", "Maxima_cantidad_de_clientes_en_cola"): format_value(estado_actual.get("max_cola"), es_id=True),
+        ("Estadísticas", "Cantidad_de_zapatos_reparados"): format_value(estado_actual.get("cant_pares_reparados"), es_id=True),
         ("Estadísticas", "Acum_tiempo_reparacion"): format_value(estado_actual.get("acum_tiempo_reparacion")),
-        ("Estadísticas", "Tiempo_promedio_reparacion"): format_value(estado_actual.get("tiempo_promedio_reparacion")),
     }
     
     if con_objetos_temporales:
         objetos_temporales = estado_actual.get("objetos_temporales", {})
+        horas_inicio_reparacion = estado_actual.get("horas_inicio_reparacion", {})
+        
         for zapato_id, estado_zapato in objetos_temporales.items():
-            # Cambiar de "Zapato N" a solo "Zapato"
+            # Solo mostrar Estado y Hora_inicio_reparacion para cada zapato
             obj_nombre = "Zapato"
-            nueva_fila[(obj_nombre, f"ID_{zapato_id}")] = format_value(zapato_id, es_id=True)
             nueva_fila[(obj_nombre, f"Estado_{zapato_id}")] = estado_zapato
+            hora_inicio = horas_inicio_reparacion.get(zapato_id)
+            nueva_fila[(obj_nombre, f"Hora_inicio_reparacion_{zapato_id}")] = format_value(hora_inicio)
     
     return nueva_fila
 
