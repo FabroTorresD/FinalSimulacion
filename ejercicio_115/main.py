@@ -307,6 +307,9 @@ if st.sidebar.button("Arrancar simulación"):
         # Si hay error con el styling, mostrar DataFrame sin estilos
         st.dataframe(df, use_container_width=True)
     
+    st.subheader("Estadísticas")
     col1, col2 = st.columns(2)
+   
+   
     col1.metric("Tiempo promedio reparación", f"{avg_rep:.2f}")
     col2.metric("Máx. clientes en cola", max_cola)
