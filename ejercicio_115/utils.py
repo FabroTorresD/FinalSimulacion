@@ -70,29 +70,28 @@ def generar_nueva_fila_multiindex(estado_actual, con_objetos_temporales=True):
             return v
     
     nueva_fila = {
-        ("", "Nro_evento"): format_value(estado_actual.get("nro_evento"), es_id=True),
         ("", "Evento"): estado_actual.get("evento", ""),
         ("", "Reloj"): format_value(estado_actual.get("reloj")),
-        ("", "RND_llegada"): format_value(estado_actual.get("rnd_llegada")),
-        ("", "Tiempo_entre_llegadas"): format_value(estado_actual.get("tiempo_entre_llegadas")),
-        ("", "Proxima_llegada"): format_value(estado_actual.get("proxima_llegada")),
-        ("", "RND_peticion"): format_value(estado_actual.get("rnd_peticion")),
-        ("", "Tipo_peticion"): estado_actual.get("tipo_peticion", ""),
-        ("", "RND_atencion"): format_value(estado_actual.get("rnd_atencion")),
-        ("", "Tiempo_atencion"): format_value(estado_actual.get("tiempo_atencion")),
-        ("", "Fin_atencion"): format_value(estado_actual.get("fin_atencion")),
-        ("", "RND_reparacion"): format_value(estado_actual.get("rnd_reparacion")),
-        ("", "Tiempo_reparacion"): format_value(estado_actual.get("tiempo_reparacion")),
-        ("", "Fin_reparacion"): format_value(estado_actual.get("fin_reparacion")),
-        ("", "Estado_zapatero"): estado_actual.get("estado_zapatero", ""),
-        ("", "Cant_pares_reparados"): format_value(estado_actual.get("cant_pares_reparados"), es_id=True),
-        ("", "Zapatos_para_retirar"): format_value(estado_actual.get("zapatos_para_retirar"), es_id=True),
-        
+        ("", "RND de llegada"): format_value(estado_actual.get("rnd_llegada")),
+        ("", "Tiempo entre llegadas"): format_value(estado_actual.get("tiempo_entre_llegadas")),
+        ("", "Proxima llegada"): format_value(estado_actual.get("proxima_llegada")),
+        ("", "RND de peticion"): format_value(estado_actual.get("rnd_peticion")),
+        ("", "Tipo de peticion"): estado_actual.get("tipo_peticion", ""),
+        ("", "RND de atencion"): format_value(estado_actual.get("rnd_atencion")),
+        ("", "Tiempo de atencion"): format_value(estado_actual.get("tiempo_atencion")),
+        ("", "Fin de atencion"): format_value(estado_actual.get("fin_atencion")),
+        ("", "RND de reparacion"): format_value(estado_actual.get("rnd_reparacion")),
+        ("", "Tiempo de reparacion"): format_value(estado_actual.get("tiempo_reparacion")),
+        ("", "Fin de reparacion"): format_value(estado_actual.get("fin_reparacion")),
+        ("", "Estado de zapatero"): estado_actual.get("estado_zapatero", ""),
+        ("", "Cant de pares reparados"): format_value(estado_actual.get("cant_pares_reparados"), es_id=True),
+        ("", "Zapatos para retirar"): format_value(estado_actual.get("zapatos_para_retirar"), es_id=True),
+
         # Columnas de estadísticas - exactamente las 4 solicitadas
-        ("Estadísticas", "Cantidad_de_clientes_en_cola"): format_value(estado_actual.get("cola_pedidos"), es_id=True),
-        ("Estadísticas", "Maxima_cantidad_de_clientes_en_cola"): format_value(estado_actual.get("max_cola"), es_id=True),
-        ("Estadísticas", "Cantidad_de_zapatos_reparados"): format_value(estado_actual.get("cant_pares_reparados"), es_id=True),
-        ("Estadísticas", "Acum_tiempo_reparacion"): format_value(estado_actual.get("acum_tiempo_reparacion")),
+        ("Estadísticas", "Cantidad de clientes en cola"): format_value(estado_actual.get("cola_pedidos"), es_id=True),
+        ("Estadísticas", "Maxima cantidad de clientes en cola"): format_value(estado_actual.get("max_cola"), es_id=True),
+        ("Estadísticas", "Cantidad de zapatos reparados"): format_value(estado_actual.get("cant_pares_reparados"), es_id=True),
+        ("Estadísticas", "Acum tiempo reparacion"): format_value(estado_actual.get("acum_tiempo_reparacion")),
     }
     
     if con_objetos_temporales:
@@ -105,10 +104,10 @@ def generar_nueva_fila_multiindex(estado_actual, con_objetos_temporales=True):
             
             # Solo mostrar Estado y Hora_inicio_reparacion para cada zapato
             obj_nombre = "Zapato"
-            nueva_fila[(obj_nombre, f"Estado_{zapato_id}")] = estado_mostrado
+            nueva_fila[(obj_nombre, f"Estado {zapato_id}")] = estado_mostrado
             hora_inicio = horas_inicio_reparacion.get(zapato_id)
-            nueva_fila[(obj_nombre, f"Hora_inicio_reparacion_{zapato_id}")] = format_value(hora_inicio)
-    
+            nueva_fila[(obj_nombre, f"Hora inicio reparacion {zapato_id}")] = format_value(hora_inicio)
+
     return nueva_fila
 
 # ------------------------------------------------------------
